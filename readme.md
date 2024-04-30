@@ -1,3 +1,3 @@
 this is a demo spring application
 With some changes
-Some new lines
+Some new lines for rebase demo
