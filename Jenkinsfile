@@ -1,46 +1,33 @@
-def gv
-
-pipeline {
+pipeline{
     agent any
-    parameters{
-        choice(name:'VERSION',choices:['1.1.0','1.2.0','1.3.0'],description:'')
-        booleanParam(name: 'executeTests',defaultValue: true, description:'')
+    tools{
+        maven 'Maven'
     }
-    stages {
-        stage('init') {
-            steps {
-                script {
-                    gv= load "script.groovy"
-                }
-            }
-        }
-        stage('build') {
-            steps {
+    stages{
+        stage("build jar"){
+            steps{
                 script{
-                    gv.buildApp()
+                    echo "building the application..."
+                    sh 'mvn package'
                 }
             }
         }
-        stage('test') {
-            when{
-                expression{
-                    params.executeTests
-                }
-            }
-            steps {
+        stage("build image"){
+            steps{
                 script{
-                    gv.testApp()
+                    echo "building the docker image..."
+                    withCredentials([usernamePassword(credentialsId:'docker-credentials',passwordVariable:"PASS", usernameVariable: 'USER')]){
+                        sh 'docker build -t raakeshr/demo-app:jma-1.2 .'
+                        sh "echo $PASS | docker login -u $USER --password-stdin"
+                        sh 'docker push raakeshr/demo-app:jma-1.2'
+                    }
                 }
             }
         }
-        stage('deploy') {
-            steps {
+        stage("deploy"){
+            steps{
                 script{
-                    env.ENV = input message: "Select the environment to deploy to", ok: "Environment selected", parameters: [choice(name:'ONE',choices:['dev','staging','prod'],description:'')]
-                    gv.deployApp()
-                    echo "Deploying to ${ENV}"                   
+                    echo "deploying the application..."
                 }
             }
         }
-    }
-}
